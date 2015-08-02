@@ -4,16 +4,44 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="author" content="KIIDAX"> 
+<meta name="author" content="KIIDAX">
 <title>Template Page</title>
+<!-- Gravator -->
+<link rel="shortcut icon" type="image/x-icon" href="https://secure.gravatar.com/blavatar/7aec7a4e1ea27b9e5ce39c881766a22a?s=16" sizes="16x16" />
+<link rel="icon" type="image/x-icon" href="https://secure.gravatar.com/blavatar/7aec7a4e1ea27b9e5ce39c881766a22a?s=16" sizes="16x16" />
+<link rel="apple-touch-icon-precomposed" href="https://secure.gravatar.com/blavatar/04c9982f5e92bb6f837fbc5fd63eba97?s=114" />
+
+<!-- Bootstrap and Font Awesome -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+
+<!-- Site style -->
 <link rel="stylesheet" href="css/style.css">
+
+<!-- Page style -->
+<style>
+<!--
+.canvas-content {
+	position: relative;
+	z-index: 0;
+	background-image: url('images/grid.png');
+	border: 10px solid gray;
+	width: 800px;
+	height: 600px;
+}
+-->
+</style>
 </head>
 <body>
     <div class="container">
     	<h1>Template Page</h1>
     	<button id="clickme" type="button" class="btn btn-lg btn-default">Click Me</button>
+    	<h2>Canvas</h2>
+    	<div class="canvas-content">
+    		<img src="images/circle.png">
+    		<img src="images/square.png">
+    		<img src="images/triangle.png">
+		</div>
 	</div>	
 	<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
