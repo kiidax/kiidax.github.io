@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="author" content="KIIDAX">
-<title>Page Title</title>
+<title>Lens Simulation</title>
 <!-- Gravator -->
 <link rel="shortcut icon" type="image/x-icon" href="https://secure.gravatar.com/blavatar/7aec7a4e1ea27b9e5ce39c881766a22a?s=16" sizes="16x16" />
 <link rel="icon" type="image/x-icon" href="https://secure.gravatar.com/blavatar/7aec7a4e1ea27b9e5ce39c881766a22a?s=16" sizes="16x16" />
@@ -34,25 +34,28 @@
 </head>
 <body>
     <div class="container">
-    	<h1>Page Title</h1>
+    	<h1>Lens Simulation</h1>
     	<button id="clickme" type="button" class="btn btn-lg btn-default">Click Me</button>
     	<h2>Canvas</h2>
-    	<div class="canvas-content">
-    		<img src="images/circle.png">
-    		<img src="images/square.png">
-    		<img src="images/triangle.png">
-		</div>
+    	<div id="lens-canvas" class="canvas-content"></div>
 	</div>	
 	<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-	<script src="js/default.js"></script>
+	<script src="js/lens.js"></script>
 	<script>
 <!--
 $(function () {
 	"use strict";
+
 	$("#clickme").click(function () {
 		alert("Hello World!");
 	});
+	
+	$("#lens-canvas").each(function (index, elem) {
+		var l = new lens.LensSim(elem);
+		l.update();
+	});
+
 });
 -->
 	</script>
