@@ -19,16 +19,17 @@ var lens = (function (lens) {
 		canvas.addEventListener("mousemove", this._onMouseMove.bind(this));
 		canvas.addEventListener("mouseup", this._onMouseUp.bind(this));
 		this._context = this._canvas.getContext("2d");
-		this._originX = this._canvasWidth / 2;
+		this._originX = this._canvasWidth / 4;
 		this._originY = this._canvasHeight / 2;
-		this._scale = 1000;
-		this.lensData = {
-			center: 0.1,
-			radius: 0.1 * 1.08,
-			height: 0.03
-		};
-		this._lightX = 0.3;
+		this._scale = 4000;
+		this._refractiveIndex = 1.49;
+		this._centerThickness = 11.0 / 1000; // 11 mm
+		this._lensRadius = 22.0 / 1000; // 22 mm
+		this._center = this._lensRadius - this._centerThickness / 2; 
+		this._lensHeight = 25.4 / 1000 / 2; // dia. 25.4 mm (1 inch)
+		this._lightX = 0.10;
 		this._lightY = 0.01;
+		this._lightCollimated = false;
 		this._calcRays();
 	};
 	
@@ -37,24 +38,24 @@ var lens = (function (lens) {
 		_addRay: function (x, y, rad) {
 			var ray = [ x, y ];
 			var v, rad2;
-			var n = 0.5;
+			var n = this._refractiveIndex;
 			
 			// Solve the point where the ray enters the lens.
-			v = ((this.lensData.center + x) * Math.sin(rad) + y * Math.cos(rad)) / this.lensData.radius;
+			v = ((this._center + x) * Math.sin(rad) + y * Math.cos(rad)) / this._lensRadius;
 			rad2 = Math.asin(v) - rad;
-			x = this.lensData.radius * Math.cos(rad2) - this.lensData.center;
-			y = this.lensData.radius * Math.sin(rad2);
-			if (y > this.lensData.height || y < -this.lensData.height) return;
-			rad = Math.asin(Math.sin(rad + rad2)) * n - rad2;
+			x = this._lensRadius * Math.cos(rad2) - this._center;
+			y = this._lensRadius * Math.sin(rad2);
+			if (y > this._lensHeight || y < -this._lensHeight) return;
+			rad = Math.asin(Math.sin(rad + rad2)) / n - rad2;
 			ray = ray.concat([ x, y ]);
 			
 			// Solve the point where the ray leave the lens.
-			v = ((x - this.lensData.center) * Math.sin(rad) + y * Math.cos(rad)) / this.lensData.radius;
+			v = ((x - this._center) * Math.sin(rad) + y * Math.cos(rad)) / this._lensRadius;
 			rad2 = Math.asin(v) + rad;
-			x = -this.lensData.radius * Math.cos(rad2) + this.lensData.center;
-			y = this.lensData.radius * Math.sin(rad2);
-			if (y > this.lensData.height) return;
-			rad = Math.asin(Math.sin(rad - rad2)) / n + rad2; 
+			x = -this._lensRadius * Math.cos(rad2) + this._center;
+			y = this._lensRadius * Math.sin(rad2);
+			if (y > this._lensHeight) return;
+			rad = Math.asin(Math.sin(rad - rad2)) * n + rad2; 
 			ray = ray.concat([ x, y ]);
 
 			// The 1m away.
@@ -66,22 +67,30 @@ var lens = (function (lens) {
 		
 		_calcRays: function () {
 			this._rays = [];
-			for (var i = -20; i <= 20; i++) {
-				this._addRay(this._lightX, this._lightY, (40 * i / 20) * Math.PI / 180);
+			if (this._lightCollimated) {
+				var rad = -Math.atan(this._lightY / this._lightX);
+				for (var i = -20; i <= 20; i++) {
+					var d = 0.05 * i / 20;
+					this._addRay(this._lightX + d * Math.sin(rad), this._lightY + d * Math.cos(rad), rad);
+				}
+			} else {
+				for (var i = -40; i <= 40; i++) {
+					this._addRay(this._lightX, this._lightY, (80 * i / 40) * Math.PI / 180);
+				}
 			}
 		},
 		
 		_drawLens: function (ctx) {
 			ctx.beginPath();
-			var rad = Math.asin(this.lensData.height / this.lensData.center);
-			ctx.arc(this._originX - this.lensData.center * this._scale,
+			var rad = Math.asin(this._lensHeight / this._lensRadius);
+			ctx.arc(this._originX - this._center * this._scale,
 					this._originY,
-					this.lensData.radius * this._scale,
+					this._lensRadius * this._scale,
 					2 * Math.PI - rad,
 					rad);
-			ctx.arc(this._originX + this.lensData.center * this._scale,
+			ctx.arc(this._originX + this._center * this._scale,
 					this._originY,
-					this.lensData.radius * this._scale,
+					this._lensRadius * this._scale,
 					1 * Math.PI - rad,
 					1 * Math.PI + rad);
 			ctx.closePath();
@@ -140,6 +149,44 @@ var lens = (function (lens) {
 		_onMouseUp: function (event) {
 			this._onMouseMove(event);
 			this._dragTarget = "";
+		},
+		
+		get lensRadius() {
+			return this._lensRadius;
+		},
+		
+		set lensRadius(v) {
+			this._lensRadius = v;
+			this._center = this._lensRadius - this._centerThickness / 2; 
+			this.update();
+		},
+		
+		get centerThickness() {
+			return this._centerThickness;
+		},
+		
+		set centerThickness(v) {
+			this._centerThickness = v;
+			this._center = this._lensRadius - this._centerThickness / 2; 
+			this.update();
+		},
+		
+		get lightCollimated() {
+			return this._lightCollimated;
+		},
+		
+		set lightCollimated(v) {
+			this._lightCollimated = !!v;
+			this.update();
+		},
+		
+		get refractiveIndex() {
+			return this._refractiveIndex;
+		},
+		
+		set refractiveIndex(v) {
+			this._refractiveIndex = v;
+			this.update();
 		},
 		
 		update: function () {

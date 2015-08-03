@@ -35,8 +35,24 @@
 <body>
     <div class="container">
     	<h1>Lens Simulation</h1>
-    	<button id="clickme" type="button" class="btn btn-lg btn-default">Click Me</button>
-    	<h2>Canvas</h2>
+  		<div class="form-inline" style="width: 800px;">
+		    <div class="form-group">
+				<label for="center-thickness">Center thickness (mm):</label>
+				<input type="text" class="form-control" id="center-thickness">
+			</div>
+		    <div class="form-group">
+				<label for="radius">Radius (mm):</label>
+				<input type="text" class="form-control" id="radius">
+			</div>
+		    <div class="form-group">
+				<label for="refractive-index">Refractive Index:</label>
+				<input type="text" class="form-control" id="refractive-index">
+			</div>
+		    <div class="form-group">
+				<label for="light-collimated">Collimated light:</label>
+				<input type="checkbox" class="form-control" id="light-collimated">
+			</div>
+		</div>    	
     	<div id="lens-canvas" class="canvas-content"></div>
 	</div>	
 	<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -46,14 +62,31 @@
 <!--
 $(function () {
 	"use strict";
+	var l = null;
 
-	$("#clickme").click(function () {
-		alert("Hello World!");
+	$("#radius").change(function (event) {
+		l.lensRadius = parseFloat(event.target.value) / 1000;
 	});
-	
+
+	$("#center-thickness").change(function (event) {
+		l.centerThickness = parseFloat(event.target.value) / 1000;
+	});
+
+	$("#light-collimated").change(function (event) {
+		l.lightCollimated = event.target.checked;
+	});
+
+	$("#refractive-index").change(function (event) {
+		l.refractiveIndex = event.target.value;
+	});
+
 	$("#lens-canvas").each(function (index, elem) {
-		var l = new lens.LensSim(elem);
+		l = new lens.LensSim(elem);
 		l.update();
+		$("#radius").val(l.lensRadius * 1000);
+		$("#center-thickness").val(l.centerThickness * 1000);
+		$("#light-collimated").val(l.lightCollimated);
+		$("#refractive-index").val(l.refractiveIndex);
 	});
 
 });
