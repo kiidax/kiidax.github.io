@@ -34,6 +34,56 @@ var lens = (function (lens) {
 	};
 	
 	LensSim.prototype = {
+			
+		get lensRadius() {
+			return this._lensRadius;
+		},
+		
+		set lensRadius(v) {
+			this._lensRadius = v;
+			this._center = this._lensRadius - this._centerThickness / 2; 
+			this.update();
+		},
+		
+		get centerThickness() {
+			return this._centerThickness;
+		},
+		
+		set centerThickness(v) {
+			this._centerThickness = v;
+			this._center = this._lensRadius - this._centerThickness / 2; 
+			this.update();
+		},
+		
+		get lightCollimated() {
+			return this._lightCollimated;
+		},
+		
+		set lightCollimated(v) {
+			this._lightCollimated = !!v;
+			this.update();
+		},
+		
+		get refractiveIndex() {
+			return this._refractiveIndex;
+		},
+		
+		set refractiveIndex(v) {
+			this._refractiveIndex = v;
+			this.update();
+		},
+		
+		update: function () {
+			var ctx = this._context;
+			this._calcRays();
+			ctx.clearRect(0, 0, this._canvasWidth, this._canvasHeight);
+			this._drawLens(ctx);
+			this._drawFocalPoint(ctx);
+			for (var i = 0; i < this._rays.length; i++) {
+				this._drawRay(ctx, this._rays[i]);
+			}
+			this._drawLight(ctx);
+		},
 		
 		_addRay: function (x, y, rad) {
 			var ray = [ x, y ];
@@ -98,9 +148,26 @@ var lens = (function (lens) {
 			ctx.lineWidth = 1;
 			ctx.fillStyle = "#ccccff";
 			ctx.fill();
-			ctx.globalAlpha = 1;
+			ctx.globalAlpha = 1.0;
 			ctx.strokeStyle = "blue";
 			ctx.stroke();
+		},
+		
+		_drawFocalPoint: function (ctx) {
+			var n = this._refractiveIndex;
+			var R = this._lensRadius;
+			var d = this._centerThickness;
+			// Lensmaker's equation
+			var f = 1 / ((n - 1) * (2 / R - ((n - 1) * d) / (n * R * R)));
+			ctx.beginPath();
+			ctx.arc(this._originX - f * this._scale,
+					this._originY, 3, 0, 2 * Math.PI);
+			ctx.closePath();
+			ctx.arc(this._originX + f * this._scale,
+					this._originY, 3, 0, 2 * Math.PI);
+			ctx.globalAlpha = 1.0;
+			ctx.fillStyle = "blue";
+			ctx.fill();
 		},
 		
 		_drawRay: function (ctx, ray) {
@@ -149,55 +216,6 @@ var lens = (function (lens) {
 		_onMouseUp: function (event) {
 			this._onMouseMove(event);
 			this._dragTarget = "";
-		},
-		
-		get lensRadius() {
-			return this._lensRadius;
-		},
-		
-		set lensRadius(v) {
-			this._lensRadius = v;
-			this._center = this._lensRadius - this._centerThickness / 2; 
-			this.update();
-		},
-		
-		get centerThickness() {
-			return this._centerThickness;
-		},
-		
-		set centerThickness(v) {
-			this._centerThickness = v;
-			this._center = this._lensRadius - this._centerThickness / 2; 
-			this.update();
-		},
-		
-		get lightCollimated() {
-			return this._lightCollimated;
-		},
-		
-		set lightCollimated(v) {
-			this._lightCollimated = !!v;
-			this.update();
-		},
-		
-		get refractiveIndex() {
-			return this._refractiveIndex;
-		},
-		
-		set refractiveIndex(v) {
-			this._refractiveIndex = v;
-			this.update();
-		},
-		
-		update: function () {
-			var ctx = this._context;
-			this._calcRays();
-			ctx.clearRect(0, 0, this._canvasWidth, this._canvasHeight);
-			this._drawLens(ctx);
-			for (var i = 0; i < this._rays.length; i++) {
-				this._drawRay(ctx, this._rays[i]);
-			}
-			this._drawLight(ctx);
 		}
 	};
 	

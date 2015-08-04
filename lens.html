@@ -85,7 +85,7 @@ $(function () {
 		l.update();
 		$("#radius").val(l.lensRadius * 1000);
 		$("#center-thickness").val(l.centerThickness * 1000);
-		$("#light-collimated").val(l.lightCollimated);
+		$("#light-collimated").prop("checked", l.lightCollimated);
 		$("#refractive-index").val(l.refractiveIndex);
 	});
 
