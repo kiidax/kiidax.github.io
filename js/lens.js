@@ -26,6 +26,8 @@ var lens = (function (lens) {
 		// Lens 1
 		this._lenses = [];
 		this._lenses.push({
+			x: 0.02,
+			y: 0.01,
 			refractiveIndex: 1.49,
 			centerThickness: 11.0 / 1000, // 11 mm
 			radius1: 22.0 / 1000, // 22 mm
@@ -83,7 +85,9 @@ var lens = (function (lens) {
 			var ctx = this._context;
 			this._calcRays();
 			ctx.clearRect(0, 0, this._canvasWidth, this._canvasHeight);
-			this._drawLens(ctx);
+			for (var i = 0; i < this._lenses.length; i++) {
+				this._drawLens(ctx, this._lenses[i]);
+			}
 			for (var i = 0; i < this._rays.length; i++) {
 				this._drawRay(ctx, this._rays[i]);
 			}
@@ -92,16 +96,18 @@ var lens = (function (lens) {
 					this._drawRayExtend(ctx, this._rays[i]);
 				}
 			}
-			this._drawFocalPoint(ctx);
+			for (var i = 0; i < this._lenses.length; i++) {
+				this._drawFocalPoint(ctx, this._lenses[i]);
+			}
 			this._drawLight(ctx);
 		},
 		
-		_calcNextSegment: function (n, center, radius, maxY, ray, path) {
-			var v = ((center + ray.x) * Math.sin(ray.rad) + ray.y * Math.cos(ray.rad)) / radius;
+		_calcNextSegment: function (n, cx, cy, radius, size, ray, path) {
+			var v = ((ray.x - cx) * Math.sin(ray.rad) + (ray.y - cy) * Math.cos(ray.rad)) / radius;
 			var rad2 = Math.asin(v) + ray.rad;
-			ray.x = -(radius * Math.cos(rad2) + center);
-			ray.y = radius * Math.sin(rad2);
-			if (ray.y > maxY || ray.y < -maxY) return false;
+			ray.x = -radius * Math.cos(rad2) + cx;
+			ray.y = radius * Math.sin(rad2) + cy;
+			if (ray.y > cy + size || ray.y < cy - size) return false;
 			ray.rad = Math.asin(Math.sin(ray.rad - rad2)) * n + rad2;
 			path.push(ray.x, ray.y);
 			return true;
@@ -114,12 +120,14 @@ var lens = (function (lens) {
 			var n = lens.refractiveIndex;
 
 			// Solve the point where the ray enters the lens.
-			var center = -(lens.radius2 + lens.centerThickness / 2); 
-			if (!this._calcNextSegment(1 / n, center, lens.radius2, lens.height, ray, path)) return;
+			var cx = lens.x + lens.radius2 + lens.centerThickness / 2;
+			var cy = lens.y;
+			if (!this._calcNextSegment(1 / n, cx, cy, lens.radius2, lens.height, ray, path)) return;
 
 			// Solve the point where the ray leave the lens.
-			center = -center; 
-			if (!this._calcNextSegment(n, center, lens.radius1, lens.height, ray, path)) return;
+			cx = lens.x + lens.radius1 - lens.centerThickness / 2; 
+			cy = lens.y;
+			if (!this._calcNextSegment(n, cx, cy, lens.radius1, lens.height, ray, path)) return;
 
 			// The 1m away.
 			ray.x = ray.x - 1 * Math.cos(ray.rad);
@@ -143,20 +151,26 @@ var lens = (function (lens) {
 			}
 		},
 		
-		_drawLens: function (ctx) {
-			var center = this._lenses[0].radius1 - this._lenses[0].centerThickness / 2; 
+		_drawLens: function (ctx, lens) {
 			ctx.beginPath();
-			var rad = Math.asin(this._lenses[0].height / this._lenses[0].radius1);
-			ctx.arc(this._originX - center * this._scale,
-					this._originY,
-					this._lenses[0].radius1 * this._scale,
+			var rad = Math.asin(lens.height / lens.radius1);
+			
+			var cx = lens.x + lens.radius2 + lens.centerThickness / 2;
+			var cy = lens.y;
+			ctx.arc(this._originX + cx * this._scale,
+					this._originY - cy * this._scale,
+					-lens.radius2 * this._scale,
 					2 * Math.PI - rad,
 					rad);
-			ctx.arc(this._originX + center * this._scale,
-					this._originY,
-					this._lenses[0].radius1 * this._scale,
+			
+			cx = lens.x + lens.radius1 - lens.centerThickness / 2;
+			cy = lens.y;
+			ctx.arc(this._originX + cx * this._scale,
+					this._originY - cy * this._scale,
+					lens.radius1 * this._scale,
 					1 * Math.PI - rad,
 					1 * Math.PI + rad);
+
 			ctx.closePath();
 			ctx.globalAlpha = 0.5;
 			ctx.lineWidth = 1;
@@ -167,10 +181,10 @@ var lens = (function (lens) {
 			ctx.stroke();
 		},
 		
-		_drawFocalPoint: function (ctx) {
-			var n = this._lenses[0].refractiveIndex;
-			var R = this._lenses[0].radius1;
-			var d = this._lenses[0].centerThickness;
+		_drawFocalPoint: function (ctx, lens) {
+			var n = lens.refractiveIndex;
+			var R = lens.radius1;
+			var d = lens.centerThickness;
 			// Lensmaker's equation
 			var f = 1 / ((n - 1) * (2 / R - ((n - 1) * d) / (n * R * R)));
 			ctx.beginPath();
