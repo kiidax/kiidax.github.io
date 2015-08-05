@@ -23,17 +23,8 @@ var lens = (function (lens) {
 		this._originY = this._canvasHeight / 2;
 		this._scale = 4000;
 		
-		// Lens 1
 		this._lenses = [];
-		this._lenses.push({
-			x: 0.02,
-			y: 0.01,
-			refractiveIndex: 1.49,
-			centerThickness: 11.0 / 1000, // 11 mm
-			radius1: 22.0 / 1000, // 22 mm
-			radius2: -22.0 / 1000, // 22 mm
-			height: 25.4 / 1000 / 2 // dia. 25.4 mm (1 inch)
-		});
+		this.preset1();
 		
 		this._lightX = 0.10;
 		this._lightY = 0.01;
@@ -81,6 +72,73 @@ var lens = (function (lens) {
 			this.update();
 		},
 		
+		setLenses: function (lenses) {
+			this._lenses = JSON.parse(JSON.stringify(lenses));
+			this.update();
+		},
+		
+		preset1: function () {
+			var lenses = [];
+			
+			// Lens 1
+			lenses.push({
+				x: 0,
+				y: 0,
+				refractiveIndex: 1.49,
+				centerThickness: 11.0 / 1000, // 11 mm
+				radius1: 22.0 / 1000, // 22 mm
+				radius2: -22.0 / 1000, // 22 mm
+				height: 25.4 / 1000 / 2 // dia. 25.4 mm (1 inch)
+			});
+
+			this.setLenses(lenses);
+		},
+		
+		preset2: function () {
+			var lenses = [];
+			
+			// Lens 1
+			lenses.push({
+				x: 0,
+				y: 0,
+				refractiveIndex: 1.49,
+				centerThickness: 4.0 / 1000, // 11 mm
+				radius1: 18.0 / 1000, // 22 mm
+				radius2: -18.0 / 1000, // 22 mm
+				height: 25.4 / 1000 / 4 // dia. 25.4 mm (1 inch)
+			});
+
+			// Lens 2
+			lenses.push({
+				x: 0.08,
+				y: 0,
+				refractiveIndex: 1.49,
+				centerThickness: 8.0 / 1000, // 11 mm
+				radius1: 28.0 / 1000, // 22 mm
+				radius2: -28.0 / 1000, // 22 mm
+				height: 25.4 / 1000 / 2 // dia. 25.4 mm (1 inch)
+			});
+			
+			this.setLenses(lenses);
+		},
+		
+		preset3: function () {
+			var lenses = [];
+			
+			// Lens 1
+			lenses.push({
+				x: 0,
+				y: 0,
+				refractiveIndex: 1.49,
+				centerThickness: 8.0 / 1000, // 11 mm
+				radius1: 8.0 / 1000, // 22 mm
+				radius2: -8.0 / 1000, // 22 mm
+				height: 25.4 / 1000 / 4 // dia. 25.4 mm (1 inch)
+			});
+
+			this.setLenses(lenses);
+		},
+		
 		update: function () {
 			var ctx = this._context;
 			this._calcRays();
@@ -102,8 +160,9 @@ var lens = (function (lens) {
 			this._drawLight(ctx);
 		},
 		
-		_calcNextSegment: function (n, cx, cy, radius, size, ray, path) {
+		_processLensSurface: function (n, cx, cy, radius, size, ray, path) {
 			var v = ((ray.x - cx) * Math.sin(ray.rad) + (ray.y - cy) * Math.cos(ray.rad)) / radius;
+			if (v < -1 || v > 1) return false;
 			var rad2 = Math.asin(v) + ray.rad;
 			ray.x = -radius * Math.cos(rad2) + cx;
 			ray.y = radius * Math.sin(rad2) + cy;
@@ -112,27 +171,37 @@ var lens = (function (lens) {
 			path.push(ray.x, ray.y);
 			return true;
 		},
-		
-		_addRay: function (x, y, rad) {
-			var ray = { x: x, y: y, rad: rad };
-			var path = [ x, y ];
-			var lens = this._lenses[0];
+
+		_processLens: function (lens, ray, path) {
 			var n = lens.refractiveIndex;
 
 			// Solve the point where the ray enters the lens.
 			var cx = lens.x + lens.radius2 + lens.centerThickness / 2;
 			var cy = lens.y;
-			if (!this._calcNextSegment(1 / n, cx, cy, lens.radius2, lens.height, ray, path)) return;
+			if (!this._processLensSurface(1 / n, cx, cy, lens.radius2, lens.height, ray, path)) return false;
 
 			// Solve the point where the ray leave the lens.
 			cx = lens.x + lens.radius1 - lens.centerThickness / 2; 
 			cy = lens.y;
-			if (!this._calcNextSegment(n, cx, cy, lens.radius1, lens.height, ray, path)) return;
+			if (!this._processLensSurface(n, cx, cy, lens.radius1, lens.height, ray, path)) return false;
+			
+			return true;
+		},
+		
+		_addRay: function (x, y, rad) {
+			var ray = { x: x, y: y, rad: rad };
+			var path = [ x, y ];
+
+			var hit = false;
+			for (var i = this._lenses.length - 1; i >= 0; --i) {
+				if (this._processLens(this._lenses[i], ray, path)) hit = true;
+			}
+			if (!hit) return;
 
 			// The 1m away.
 			ray.x = ray.x - 1 * Math.cos(ray.rad);
 			ray.y = ray.y + 1 * Math.sin(ray.rad);
-			path = path.concat([ ray.x, ray.y ]);
+			path.push(ray.x, ray.y);
 			this._rays.push(path);
 		},
 		
@@ -183,16 +252,15 @@ var lens = (function (lens) {
 		
 		_drawFocalPoint: function (ctx, lens) {
 			var n = lens.refractiveIndex;
-			var R = lens.radius1;
 			var d = lens.centerThickness;
 			// Lensmaker's equation
-			var f = 1 / ((n - 1) * (2 / R - ((n - 1) * d) / (n * R * R)));
+			var f = 1 / ((n - 1) * (1 / lens.radius1 - 1 / lens.radius2 + ((n - 1) * d) / (n * lens.radius1 * lens.radius2)));
 			ctx.beginPath();
-			ctx.arc(this._originX - f * this._scale,
-					this._originY, 3, 0, 2 * Math.PI);
+			ctx.arc(this._originX + (lens.x - f) * this._scale,
+					this._originY + lens.y * this._scale, 3, 0, 2 * Math.PI);
 			ctx.closePath();
-			ctx.arc(this._originX + f * this._scale,
-					this._originY, 3, 0, 2 * Math.PI);
+			ctx.arc(this._originX + (lens.x + f) * this._scale,
+					this._originY + lens.y, 3, 0, 2 * Math.PI);
 			ctx.globalAlpha = 1.0;
 			ctx.fillStyle = "blue";
 			ctx.fill();
