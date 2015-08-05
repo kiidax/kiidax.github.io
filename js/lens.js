@@ -30,6 +30,7 @@ var lens = (function (lens) {
 		this._lightX = 0.10;
 		this._lightY = 0.01;
 		this._lightCollimated = false;
+		this._rayExtendEnabled = false;
 		this._calcRays();
 	};
 	
@@ -78,10 +79,15 @@ var lens = (function (lens) {
 			this._calcRays();
 			ctx.clearRect(0, 0, this._canvasWidth, this._canvasHeight);
 			this._drawLens(ctx);
-			this._drawFocalPoint(ctx);
 			for (var i = 0; i < this._rays.length; i++) {
 				this._drawRay(ctx, this._rays[i]);
 			}
+			if (this._rayExtendEnabled) {
+				for (var i = 0; i < this._rays.length; i++) {
+					this._drawRayExtend(ctx, this._rays[i]);
+				}
+			}
+			this._drawFocalPoint(ctx);
 			this._drawLight(ctx);
 		},
 		
@@ -181,6 +187,24 @@ var lens = (function (lens) {
 			ctx.globalAlpha = 1;
 			ctx.lineWidth = 0.5;
 			ctx.strokeStyle = "red";
+			ctx.stroke();
+		},
+		
+		_drawRayExtend: function (ctx, ray) {
+			ctx.beginPath();
+			if (ray.length < 4) return;
+			var i = ray.length - 4;
+			var x = ray[i];
+			var y = ray[i + 1];
+			ctx.moveTo(this._originX + x * this._scale,
+					   this._originY - y * this._scale);
+			x = 2 * x - ray[i + 2];
+			y = 2 * y - ray[i + 3];
+			ctx.lineTo(this._originX + x * this._scale,
+					   this._originY - y * this._scale);
+			ctx.globalAlpha = 1;
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = "blue";
 			ctx.stroke();
 		},
 		
