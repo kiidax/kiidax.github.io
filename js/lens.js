@@ -96,35 +96,36 @@ var lens = (function (lens) {
 			this._drawLight(ctx);
 		},
 		
+		_calcNextSegment: function (n, center, radius, maxY, ray, path) {
+			var v = ((center + ray.x) * Math.sin(ray.rad) + ray.y * Math.cos(ray.rad)) / radius;
+			var rad2 = Math.asin(v) + ray.rad;
+			ray.x = -(radius * Math.cos(rad2) + center);
+			ray.y = radius * Math.sin(rad2);
+			if (ray.y > maxY || ray.y < -maxY) return false;
+			ray.rad = Math.asin(Math.sin(ray.rad - rad2)) * n + rad2;
+			path.push(ray.x, ray.y);
+			return true;
+		},
+		
 		_addRay: function (x, y, rad) {
-			var ray = [ x, y ];
-			var v, rad2;
-			var n = this._lenses[0].refractiveIndex;
-			var center = this._lenses[0].radius1 - this._lenses[0].centerThickness / 2; 
+			var ray = { x: x, y: y, rad: rad };
+			var path = [ x, y ];
+			var lens = this._lenses[0];
+			var n = lens.refractiveIndex;
 
 			// Solve the point where the ray enters the lens.
-			v = ((center + x) * Math.sin(rad) + y * Math.cos(rad)) / this._lenses[0].radius1;
-			rad2 = Math.asin(v) - rad;
-			x = this._lenses[0].radius1 * Math.cos(rad2) - center;
-			y = this._lenses[0].radius1 * Math.sin(rad2);
-			if (y > this._lenses[0].height || y < -this._lenses[0].height) return;
-			rad = Math.asin(Math.sin(rad + rad2)) / n - rad2;
-			ray = ray.concat([ x, y ]);
-			
+			var center = -(lens.radius2 + lens.centerThickness / 2); 
+			if (!this._calcNextSegment(1 / n, center, lens.radius2, lens.height, ray, path)) return;
+
 			// Solve the point where the ray leave the lens.
-			v = ((x - center) * Math.sin(rad) + y * Math.cos(rad)) / this._lenses[0].radius1;
-			rad2 = Math.asin(v) + rad;
-			x = -this._lenses[0].radius1 * Math.cos(rad2) + center;
-			y = this._lenses[0].radius1 * Math.sin(rad2);
-			if (y > this._lenses[0].height) return;
-			rad = Math.asin(Math.sin(rad - rad2)) * n + rad2; 
-			ray = ray.concat([ x, y ]);
+			center = -center; 
+			if (!this._calcNextSegment(n, center, lens.radius1, lens.height, ray, path)) return;
 
 			// The 1m away.
-			x = x - 1 * Math.cos(rad);
-			y = y + 1 * Math.sin(rad);
-			ray = ray.concat([ x, y ]);
-			this._rays.push(ray);
+			ray.x = ray.x - 1 * Math.cos(ray.rad);
+			ray.y = ray.y + 1 * Math.sin(ray.rad);
+			path = path.concat([ ray.x, ray.y ]);
+			this._rays.push(path);
 		},
 		
 		_calcRays: function () {
