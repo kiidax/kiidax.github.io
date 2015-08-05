@@ -22,11 +22,17 @@ var lens = (function (lens) {
 		this._originX = this._canvasWidth / 4;
 		this._originY = this._canvasHeight / 2;
 		this._scale = 4000;
-		this._refractiveIndex = 1.49;
-		this._centerThickness = 11.0 / 1000; // 11 mm
-		this._lensRadius = 22.0 / 1000; // 22 mm
-		this._center = this._lensRadius - this._centerThickness / 2; 
-		this._lensHeight = 25.4 / 1000 / 2; // dia. 25.4 mm (1 inch)
+		
+		// Lens 1
+		this._lenses = [];
+		this._lenses.push({
+			refractiveIndex: 1.49,
+			centerThickness: 11.0 / 1000, // 11 mm
+			radius1: 22.0 / 1000, // 22 mm
+			radius2: -22.0 / 1000, // 22 mm
+			height: 25.4 / 1000 / 2 // dia. 25.4 mm (1 inch)
+		});
+		
 		this._lightX = 0.10;
 		this._lightY = 0.01;
 		this._lightCollimated = false;
@@ -37,22 +43,21 @@ var lens = (function (lens) {
 	LensSim.prototype = {
 			
 		get lensRadius() {
-			return this._lensRadius;
+			return this._lenses[0].radius1;
 		},
 		
 		set lensRadius(v) {
-			this._lensRadius = v;
-			this._center = this._lensRadius - this._centerThickness / 2; 
+			this._lenses[0].radius1 = v;
+			this._lenses[0].radius2 = -v;
 			this.update();
 		},
 		
 		get centerThickness() {
-			return this._centerThickness;
+			return this._lenses[0].centerThickness;
 		},
 		
 		set centerThickness(v) {
-			this._centerThickness = v;
-			this._center = this._lensRadius - this._centerThickness / 2; 
+			this._lenses[0].centerThickness = v;
 			this.update();
 		},
 		
@@ -66,11 +71,11 @@ var lens = (function (lens) {
 		},
 		
 		get refractiveIndex() {
-			return this._refractiveIndex;
+			return this._lenses[0].refractiveIndex;
 		},
 		
 		set refractiveIndex(v) {
-			this._refractiveIndex = v;
+			this._lenses[0].refractiveIndex = v;
 			this.update();
 		},
 		
@@ -94,23 +99,24 @@ var lens = (function (lens) {
 		_addRay: function (x, y, rad) {
 			var ray = [ x, y ];
 			var v, rad2;
-			var n = this._refractiveIndex;
-			
+			var n = this._lenses[0].refractiveIndex;
+			var center = this._lenses[0].radius1 - this._lenses[0].centerThickness / 2; 
+
 			// Solve the point where the ray enters the lens.
-			v = ((this._center + x) * Math.sin(rad) + y * Math.cos(rad)) / this._lensRadius;
+			v = ((center + x) * Math.sin(rad) + y * Math.cos(rad)) / this._lenses[0].radius1;
 			rad2 = Math.asin(v) - rad;
-			x = this._lensRadius * Math.cos(rad2) - this._center;
-			y = this._lensRadius * Math.sin(rad2);
-			if (y > this._lensHeight || y < -this._lensHeight) return;
+			x = this._lenses[0].radius1 * Math.cos(rad2) - center;
+			y = this._lenses[0].radius1 * Math.sin(rad2);
+			if (y > this._lenses[0].height || y < -this._lenses[0].height) return;
 			rad = Math.asin(Math.sin(rad + rad2)) / n - rad2;
 			ray = ray.concat([ x, y ]);
 			
 			// Solve the point where the ray leave the lens.
-			v = ((x - this._center) * Math.sin(rad) + y * Math.cos(rad)) / this._lensRadius;
+			v = ((x - center) * Math.sin(rad) + y * Math.cos(rad)) / this._lenses[0].radius1;
 			rad2 = Math.asin(v) + rad;
-			x = -this._lensRadius * Math.cos(rad2) + this._center;
-			y = this._lensRadius * Math.sin(rad2);
-			if (y > this._lensHeight) return;
+			x = -this._lenses[0].radius1 * Math.cos(rad2) + center;
+			y = this._lenses[0].radius1 * Math.sin(rad2);
+			if (y > this._lenses[0].height) return;
 			rad = Math.asin(Math.sin(rad - rad2)) * n + rad2; 
 			ray = ray.concat([ x, y ]);
 
@@ -137,16 +143,17 @@ var lens = (function (lens) {
 		},
 		
 		_drawLens: function (ctx) {
+			var center = this._lenses[0].radius1 - this._lenses[0].centerThickness / 2; 
 			ctx.beginPath();
-			var rad = Math.asin(this._lensHeight / this._lensRadius);
-			ctx.arc(this._originX - this._center * this._scale,
+			var rad = Math.asin(this._lenses[0].height / this._lenses[0].radius1);
+			ctx.arc(this._originX - center * this._scale,
 					this._originY,
-					this._lensRadius * this._scale,
+					this._lenses[0].radius1 * this._scale,
 					2 * Math.PI - rad,
 					rad);
-			ctx.arc(this._originX + this._center * this._scale,
+			ctx.arc(this._originX + center * this._scale,
 					this._originY,
-					this._lensRadius * this._scale,
+					this._lenses[0].radius1 * this._scale,
 					1 * Math.PI - rad,
 					1 * Math.PI + rad);
 			ctx.closePath();
@@ -160,9 +167,9 @@ var lens = (function (lens) {
 		},
 		
 		_drawFocalPoint: function (ctx) {
-			var n = this._refractiveIndex;
-			var R = this._lensRadius;
-			var d = this._centerThickness;
+			var n = this._lenses[0].refractiveIndex;
+			var R = this._lenses[0].radius1;
+			var d = this._lenses[0].centerThickness;
 			// Lensmaker's equation
 			var f = 1 / ((n - 1) * (2 / R - ((n - 1) * d) / (n * R * R)));
 			ctx.beginPath();
