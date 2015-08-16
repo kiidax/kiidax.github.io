@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>DoogleGraph</title>
+    <link rel="stylesheet" type="text/css" href="doodlegraph.css">
+    <link rel="stylesheet" type="text/css" href="doodlegraphui.css">
+    <link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.9.2/dojo/resources/dojo.css">
+    <link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.9.2/dijit/themes/tundra/tundra.css">
+    </style>
+  </head>
+  <body class="tundra">
+    <div id="content">
+      <h1>DoodleGraph</h1>
+
+      <p>
+	Stroke a line through the box from left to right to make dummy
+	data for languages of your choice. Matlab, Octave, R,
+	JavaScript, C/C++ are supported. Both X and Y-axis range
+	[-1,1].
+      </p>
+      
+      <div id="toppanel">
+	<label>Format:
+	  <select id="format" data-dojo-type="dijit/form/Select">
+	    <option value="matlab">Matlab/Octave</option>
+	    <option value="r">R</option>
+	    <option value="javascript">JavaScript</option>
+	    <option value="c">C/C++</option>
+	  </select>
+	</label>
+	<label>Steps: 
+	  <input id="steps"
+		 type="text"
+		 data-dojo-type="dijit/form/NumberTextBox"
+		 required="true"
+		 value="100"
+		 data-dojo-props="value:100,constraints:{min:2,max:1000}">
+	</label>
+	<button id="clear"
+		data-dojo-type="dijit/form/Button">
+	  Clear
+	</button>
+      </div>
+      <div id="mydrawgraph" class="drawgraph"></div>
+      <div id="bottompanel">
+	<textarea id="dataoutput" data-dojo-type="dijit/form/SimpleTextarea" rows="4"></textarea>
+      </div>
+    </div>
+    <script src="http://ajax.googleapis.com/ajax/libs/dojo/1.9.2/dojo/dojo.js" data-dojo-config="async: true"></script>
+    <script type="text/javascript" src="doodlegraph.js"></script>
+    <script type="text/javascript" src="doodlegraphui.js"></script>
+  </body>
+</html>

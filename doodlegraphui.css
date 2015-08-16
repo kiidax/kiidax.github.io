@@ -1,0 +1,24 @@
+#content {
+  margin: 10px;
+  max-width: 600px;
+}
+
+#toppanel,#bottompanel {
+  margin: 10px 0px;
+}
+
+#bottompanel {
+  padding: 0px 40px;
+}
+
+#dataoutput {
+  display: block;
+}
+
+#mydrawgraph {
+  display: block;
+  border: 10px solid gray;
+  position: relative;
+  height: 60vh;
+  max-height: 600px;
+}
