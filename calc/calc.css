@@ -1,0 +1,25 @@
+﻿.calc-display {
+    color: white;
+    background-color: black;
+    font-family: monospace;
+    font-size: 18pt;
+    text-align: right;
+}
+
+.calc-keypad {
+    display: inline-block;
+    background-color: gray;
+}
+
+.calc-keypad table {
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.calc-keypad td {
+    width: 25%;
+}
+
+.calc-keypad button {
+    width: 100%;
+}

@@ -1,0 +1,33 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="calc.css" />
+    <title>Calculator</title>
+    <style>
+        #container {
+            display: inline-block;
+            position: relative;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="display" class="calc-display"></div>
+        <div id="keypad" class="calc-keypad"></div>
+    </div>
+    <script src="calc.js"></script>
+    <script>
+        window.addEventListener("load", function () {
+            var text = "0";
+            var display = new calc.Display(document.getElementById("display"));
+            var keypad = new calc.Keypad(document.getElementById("keypad"));
+            keypad.click(function (key) {
+                text += key;
+                display.setText(text);
+            });
+        }, false);
+    </script>
+</body>
+</html>
