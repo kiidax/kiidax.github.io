@@ -2,20 +2,44 @@
     "use strict";
     
     var NUMBER_CHARS = "0123456789.";
+    var BINARY_CHARS = "+-*/";
     
     /**
      * Represents the state of the input.
      */
     var InputModel = function () {
+        this._accumulator = 0;
+        this._operand = 0;
+        this._operator = null;
         this._currentText = "";
         this._onUpdate = null;
     };
     
     InputModel.prototype = {
         appendChar: function (ch) {
-            if (NUMBER_CHARS.indexOf(ch) != -1) {
+            if (ch == "A") {
+                this._resetNumber();
+            } else if (ch == "C") {
+                this._resetNumber();
+            } else if (NUMBER_CHARS.indexOf(ch) != -1) {
                 this._appendCharNumber(ch);
+            } else if (BINARY_CHARS.indexOf(ch) != -1) {
+                if (this._currentText != "") {
+                    this._prepareOperand();
+                    this._applyOperator();
+                    this._currentText = "";
+                }
+                this._operator = ch;
+            } else if (ch == "=") {
+                this._prepareOperand();
+                this._applyOperator();
+                this._currentText = "";
             }
+        },
+        
+        _resetNumber: function () {
+            this._currentText = "";
+            if (this._onUpdate) this._onUpdate("0");
         },
         
         _appendCharNumber: function (ch) {
@@ -30,8 +54,20 @@
             if (this._onUpdate) this._onUpdate(this._currentText);
         },
         
-        reset: function () {
-            this._currentText = "";
+        _prepareOperand: function () {
+            if (this._currentText != "") {
+                this._operand = parseFloat(this._currentText);
+            }
+        },
+        
+        _applyOperator: function () {
+            if (this._operator == null) {
+                this._accumulator = this._operand;
+            } else if (this._operator == "+") {
+                this._accumulator += this._operand;
+            }
+            console.log(this._accumulator);
+            if (this._onUpdate) this._onUpdate(this._accumulator.toString());
         }
     };
 
