@@ -7,12 +7,12 @@
     /**
      * Represents the state of the input.
      */
-    var InputModel = function () {
-        this._onUpdate = null;
+    var InputModel = function (display) {
         this._accumulator = 0;
         this._operand = 0;
         this._operator = null;
         this._currentText = "";
+        this._display = display;
     };
     
     InputModel.prototype = {
@@ -30,12 +30,16 @@
                     this._currentText = "";
                 }
                 this._operator = ch;
+                this._display.setOperator(ch);
             } else if (ch == "=") {
                 this._prepareOperand();
                 this._applyOperator();
                 this._currentText = "";
+                this._display.setOperator("");
             } else if (ch === "\u0008") {
                 this.eraseBackword();
+            } else if (ch === "\u001b") {
+                this.reset();
             } else {
                 return false;
             }
@@ -47,19 +51,20 @@
             this._accumulator = 0;
             this._operand = 0;
             this._operator = null;
+            this._display.setOperator("");
         },
         
         eraseBackword: function () {
             if (this._currentText.length > 0) {
                 this._currentText = this._currentText.substr(0, this._currentText.length - 1);
                 if (this._currentText === "") this._currentText = "0";
-                if (this._onUpdate) this._onUpdate(this._currentText);
+                this._display.setText(this._currentText);
             }
         },
         
         _resetNumber: function () {
             this._currentText = "";
-            if (this._onUpdate) this._onUpdate("0");
+            this._display.setText("0");
         },
         
         _appendCharNumber: function (ch) {
@@ -71,7 +76,7 @@
             }
             currentText += ch;
             this._currentText = currentText;
-            if (this._onUpdate) this._onUpdate(this._currentText);
+            this._display.setText(this._currentText);
         },
         
         _prepareOperand: function () {
@@ -93,7 +98,7 @@
                 this._accumulator /= this._operand;
             }
             console.log(this._accumulator);
-            if (this._onUpdate) this._onUpdate(this._accumulator.toString());
+            this._display.setText(this._accumulator.toString());
         }
     };
 
@@ -112,7 +117,13 @@
      */
     var Display = function (element) {
         this.element = element;
+        var operatorElem = document.createElement("div");
+        operatorElem.className = "calc-operator";
+        this.element.appendChild(operatorElem);
+        this._operatorTextNode = document.createTextNode("");
+        operatorElem.appendChild(this._operatorTextNode);
         this._displayTextNode = document.createTextNode("");
+        this._displayTextNode.className = "calc-display";
         this.element.appendChild(this._displayTextNode);
         this.setText("0");
     };
@@ -123,6 +134,10 @@
 
         setText: function (text) {
             this._displayTextNode.textContent = text;
+        },
+        
+        setOperator: function (operator) {
+            this._operatorTextNode.textContent = operator;
         }
     };
 

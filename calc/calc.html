@@ -23,7 +23,7 @@
         window.addEventListener("load", function () {
             var display = new calc.Display(document.getElementById("display"));
             var keypad = new calc.Keypad(document.getElementById("keypad"));
-            var inputModel = new calc.InputModel();
+            var inputModel = new calc.InputModel(display);
             inputModel._onUpdate = function (text) {
                 display.setText(text);
             }
