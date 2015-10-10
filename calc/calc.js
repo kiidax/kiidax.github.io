@@ -18,6 +18,7 @@
     
     var NUMBER_CHARS = "0123456789.";
     var BINARY_CHARS = "+-*/";
+    var SINGLE_CHARS = "r"
     
     /**
      * Represents the state of the input.
