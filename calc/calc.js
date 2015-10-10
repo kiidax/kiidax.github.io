@@ -8,11 +8,11 @@
      * Represents the state of the input.
      */
     var InputModel = function () {
+        this._onUpdate = null;
         this._accumulator = 0;
         this._operand = 0;
         this._operator = null;
         this._currentText = "";
-        this._onUpdate = null;
     };
     
     InputModel.prototype = {
@@ -34,6 +34,26 @@
                 this._prepareOperand();
                 this._applyOperator();
                 this._currentText = "";
+            } else if (ch === "\u0008") {
+                this.eraseBackword();
+            } else {
+                return false;
+            }
+            return true;
+        },
+        
+        reset: function () {
+            this._resetNumber();
+            this._accumulator = 0;
+            this._operand = 0;
+            this._operator = null;
+        },
+        
+        eraseBackword: function () {
+            if (this._currentText.length > 0) {
+                this._currentText = this._currentText.substr(0, this._currentText.length - 1);
+                if (this._currentText === "") this._currentText = "0";
+                if (this._onUpdate) this._onUpdate(this._currentText);
             }
         },
         
@@ -65,6 +85,12 @@
                 this._accumulator = this._operand;
             } else if (this._operator == "+") {
                 this._accumulator += this._operand;
+            } else if (this._operator == "-") {
+                this._accumulator -= this._operand;
+            } else if (this._operator == "*") {
+                this._accumulator *= this._operand;
+            } else if (this._operator == "/") {
+                this._accumulator /= this._operand;
             }
             console.log(this._accumulator);
             if (this._onUpdate) this._onUpdate(this._accumulator.toString());
@@ -72,12 +98,12 @@
     };
 
     var KEYPAD_DATA = [
-        "MC", "MR", "M+", "M-", "1/x",  
-        "%", "\u221a", "\u00f7", "\u00d7", "-", 
-        "\u00b1", "7",  "8",  "9",  "_+", 
-        "\u25B6",  "4",  "5",  "6",  ,
-        "C",  "1",  "2",  "3",  "_=",
-        "AC", " 0",  , ".",  ,  ,
+        "MMC", "mMR", ">M+", "<M-", "p1/x",  
+        "%", "r\u221a", "/\u00f7", "*\u00d7", "-", 
+        "n\u00b1", "7",  "8",  "9",  "_+", 
+        "\u0008\u25B6",  "4",  "5",  "6",  ,
+        "\u007fC",  "1",  "2",  "3",  "_=",
+        "\u001bAC", " 0",  , ".",  ,  ,
     ];
 
     /**
@@ -105,6 +131,7 @@
      * @Constructor
      */
     var Keypad = function (element) {
+        var that = this;
         this.element = element;
         var tableElem = document.createElement("table");
         this.element.appendChild(tableElem);
@@ -128,19 +155,39 @@
                         keyData = keyData.substr(1);
                     }
                     rowElem.appendChild(cellElem);
+                    // Insert an DIV to avoid WebKit's height calculation issue.
+                    var buttonContainerElem = document.createElement("div");
+                    buttonContainerElem.style.height = "100%";
+                    cellElem.appendChild(buttonContainerElem);
                     var buttonElem = document.createElement("button");
-                    cellElem.appendChild(buttonElem);
+                    buttonContainerElem.appendChild(buttonElem);
+                    var keyChar = keyData;
+                    if (keyChar.length > 1) {
+                        keyChar = keyData[0];
+                        keyData = keyData.substr(1);
+                    }
                     var textNode = document.createTextNode(keyData);
                     buttonElem.appendChild(textNode);
-                    buttonElem.calcKeyId = keyData;
-                    var that = this;
+                    buttonElem.calcKeyChar = keyChar;
                     buttonElem.addEventListener("click", function (event) {
-                        var keyData = event.target.calcKeyId;
-                        that._onclick(keyData);
+                        var ch = event.target.calcKeyChar;
+                        that._onclick(ch);
                     });
                 }
             }
         }
+        window.addEventListener("keydown", function (event) {
+            var ch = event.char;
+            if (ch === undefined || ch === "") ch = String.fromCharCode(event.keyCode);
+            if (ch !== "") {
+                var handled = that._onclick(ch);
+                if (handled) {
+                    event.preventDefault();
+                }
+                console.log(event);
+                event.preventDefault();
+            }
+        })
     };
 
     Keypad.prototype = {
