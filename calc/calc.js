@@ -22,7 +22,7 @@
     /**
      * Represents the state of the input.
      */
-    var InputModel = function (display) {
+    var Calculator = function (display) {
         this._accumulator = 0;
         this._operand = null;
         this._operator = null;
@@ -30,7 +30,7 @@
         this._display = display;
     };
     
-    InputModel.prototype = {
+    Calculator.prototype = {
         appendChar: function (ch) {
             if (ch === "\u001b") { // AC
                 this.reset();
@@ -248,7 +248,7 @@
         }
     };
 
-    calc.InputModel = InputModel;
+    calc.Calculator = Calculator;
     calc.Display = Display;
     calc.Keypad = Keypad;
     
