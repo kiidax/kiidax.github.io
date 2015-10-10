@@ -1,5 +1,20 @@
-﻿(function (global, undefined) {
+﻿var calc = function (calc, undefined) {
     "use strict";
+    
+    /*
+     A=   --- N+ ---> A+ (A<-N)
+     A=   --- N= ---> A= (A<-N)
+     A=   --- +  ---> A+ (A<-A)
+     A=   --- =  ---> A= (A<-A)
+     A+   --- N+ ---> A+ (A<-A+N)
+     A+   --- N= ---> A+B= (A<-A+N,B<-N)
+     A+   --- +  ---> A+
+     A+   --- =  ---> A+B= (A<-A+A,B<-A)
+     A+B= --- N+ ---> A+ (A<-N)
+     A+B= --- N= ---> A+B= (A<-N+B)
+     A+B= --- +  ---> A+ (A<-A)
+     A+B= --- =  ---> A+B= (A<-A+B)
+     */
     
     var NUMBER_CHARS = "0123456789.";
     var BINARY_CHARS = "+-*/";
@@ -9,79 +24,103 @@
      */
     var InputModel = function (display) {
         this._accumulator = 0;
-        this._operand = 0;
+        this._operand = null;
         this._operator = null;
-        this._currentText = "";
+        this._currentInput = null;
         this._display = display;
     };
     
     InputModel.prototype = {
         appendChar: function (ch) {
-            if (ch == "A") {
-                this._resetNumber();
-            } else if (ch == "C") {
-                this._resetNumber();
+            if (ch === "\u001b") { // AC
+                this.reset();
+            } else if (ch === "\u007f") { // C
+                this.resetInput();
+            } else if (ch === "\u0008") { // ->
+                this.eraseBackword();
             } else if (NUMBER_CHARS.indexOf(ch) != -1) {
                 this._appendCharNumber(ch);
             } else if (BINARY_CHARS.indexOf(ch) != -1) {
-                if (this._currentText != "") {
-                    this._prepareOperand();
-                    this._applyOperator();
-                    this._currentText = "";
-                }
-                this._operator = ch;
-                this._display.setOperator(ch);
-            } else if (ch == "=") {
-                this._prepareOperand();
-                this._applyOperator();
-                this._currentText = "";
-                this._display.setOperator("");
-            } else if (ch === "\u0008") {
-                this.eraseBackword();
-            } else if (ch === "\u001b") {
-                this.reset();
+                this._appendCharBinary(ch);
+            } else if (ch === "=") {
+                this._appendCharEquals();
             } else {
                 return false;
             }
             return true;
         },
         
+        /**
+         * Resets all the states.
+         */
         reset: function () {
-            this._resetNumber();
+            this.resetInput();
             this._accumulator = 0;
-            this._operand = 0;
+            this._operand = null;
             this._operator = null;
             this._display.setOperator("");
         },
         
-        eraseBackword: function () {
-            if (this._currentText.length > 0) {
-                this._currentText = this._currentText.substr(0, this._currentText.length - 1);
-                if (this._currentText === "") this._currentText = "0";
-                this._display.setText(this._currentText);
-            }
-        },
-        
-        _resetNumber: function () {
-            this._currentText = "";
+        /**
+         * Resets the current input to 0.
+         */
+        resetInput: function () {
+            this._currentInput = "0";
             this._display.setText("0");
         },
         
-        _appendCharNumber: function (ch) {
-            var currentText = this._currentText;
-            if (currentText == "0") currentText = "";
-            if (ch == ".") {
-                if (currentText.indexOf(".") != -1) return;
-                if (currentText == "") currentText = "0";
+        /**
+         * Erases the last character from the input.
+         */
+        eraseBackword: function () {
+            var currentInput = this._currentInput;
+            if (currentInput !== null) {
+                currentInput = currentInput.substr(0, currentInput.length - 1);
+                if (currentInput === "") currentInput = "0";
+                this._currentInput = currentInput;
+                this._display.setText(currentInput);
             }
-            currentText += ch;
-            this._currentText = currentText;
-            this._display.setText(this._currentText);
         },
         
+        _appendCharNumber: function (ch) {
+            var currentInput = this._currentInput;
+            if (currentInput === null) currentInput = "0";
+            if (ch == ".") {
+                if (currentInput.indexOf(".") != -1) return;
+            } else {
+                if (currentInput === "0") currentInput = "";
+            }
+            currentInput += ch;
+            this._currentInput = currentInput;
+            this._display.setText(currentInput);
+        },
+        
+        _appendCharBinary: function (ch) {
+            if (this._operand !== null) {
+                // This happens after "=".
+                this._operator = null;
+                this._operand = null;
+            }
+            this._prepareOperand();
+            this._applyOperator();
+            this._currentInput = null;
+            this._operator = ch;
+            this._operand = null;
+            this._display.setOperator(ch);
+        },
+        
+        _appendCharEquals: function () {
+            this._prepareOperand();
+            this._applyOperator();
+            this._currentInput = null;
+            this._display.setOperator("");
+        },
+
         _prepareOperand: function () {
-            if (this._currentText != "") {
-                this._operand = parseFloat(this._currentText);
+            if (this._currentInput !== null) {
+                this._operand = parseFloat(this._currentInput);
+            } else if (this._operand === null) {
+                this._operand = this._accumulator;
             }
         },
         
@@ -97,7 +136,6 @@
             } else if (this._operator == "/") {
                 this._accumulator /= this._operand;
             }
-            console.log(this._accumulator);
             this._display.setText(this._accumulator.toString());
         }
     };
@@ -200,7 +238,6 @@
                     event.preventDefault();
                 }
                 console.log(event);
-                event.preventDefault();
             }
         })
     };
@@ -211,10 +248,9 @@
         }
     };
 
-    global.calc = {
-        InputModel: InputModel,
-        Display: Display,
-        Keypad: Keypad,        
-    };
-
-}(this));
+    calc.InputModel = InputModel;
+    calc.Display = Display;
+    calc.Keypad = Keypad;
+    
+    return calc;
+}(calc || {});
