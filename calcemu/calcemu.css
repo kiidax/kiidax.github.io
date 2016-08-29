@@ -1,0 +1,17 @@
+.calcemu-calcpad {
+    border: 2px solid gray;
+    padding: 8px;
+}
+
+.calcemu-calcpad .calcemu-display {
+    border: 2px solid gray;
+    padding: 4px;
+    color: black;
+    background-color: lightgray;
+    font: 18pt bold monospace;
+    text-align: right;
+}
+
+.calcemu-calcpad button {
+    width: 36px;
+}
