@@ -2,8 +2,16 @@ var calcemu = (function () {
     "use strict";
 
     var labelLists = '% MC MR M- M+ \u221a 7 8 9 \u00f7 C 4 5 6 \u00d7 AC 1 2 3 - _ 0 . = +'.split(' ');
-    var idLists = '% mc mr m- m+ sqrt 7 8 9 / C 4 5 6 * AC 1 2 3 - _ 0 . = +'.split(' ');
-    var keyLists = '% mc mr m- m+ sqrt 7 8 9 / C 4 5 6 * AC 1 2 3 - _ 0 . = +'.split(' ');
+    var idLists = '% mc mr m- m+ sqrt 7 8 9 / c 4 5 6 * ac 1 2 3 - _ 0 . = +'.split(' ');
+    var keyLists = '% f m s a r 7 8 9 / c 4 5 6 * c 1 2 3 - _ 0 . = +'.split(' ');
+    var classLists = 'o m m m m o n n n o c n n n o c n n n o _ n n o o'.split(' ').map(function (x) {
+        switch (x) {
+            case 'o': return 'operator';
+            case 'n': return 'number';
+            case 'c': return 'controller';
+            case 'm': return 'memory';
+        }
+    });
 
     function CalcPad(element) {
         var that = this;
@@ -21,6 +29,13 @@ var calcemu = (function () {
         this.displayElement.colSpan = 5;
         tableElement.appendChild(this.displayElement);
 
+        var titleContainerElement = document.createElement('tr');
+        tableElement.appendChild(titleContainerElement);
+        var titleElement = document.createElement('td');
+        titleElement.colSpan = 5;
+        titleElement.innerHTML = '<div class="calcemu-logo">Calculator Emulator</div>';
+        titleContainerElement.appendChild(titleElement);
+
         for (var i = 0; i < 5; i++) {
             var rowElement = document.createElement('tr');
             tableElement.appendChild(rowElement);
@@ -31,8 +46,10 @@ var calcemu = (function () {
                 cellElement.appendChild(buttonElement);
                 var index = i * 5 + j;
                 var label = labelLists[index];
+                var className = classLists[index];
                 var labelText = document.createTextNode(label);
                 buttonElement.appendChild(labelText);
+                buttonElement.className = className;
                 buttonElement.buttonId = idLists[index];
                 buttonElement.addEventListener('click', function () {
                     that.onButtonClick(this.buttonId);
@@ -62,40 +79,45 @@ var calcemu = (function () {
                 that.pressOperator(buttonId);
             } else if (buttonId == '=') {
                 that.pressEnter(buttonId);
+            } else if (buttonId == 'ac') {
+                that.reset(true);
+            } else if (buttonId == 'c') {
+                that.reset(false);
             } else {
                 //window.alert(buttonId);
             }
             that.dumpState();
         };
-        this.inputValue = '';
-        this.memoryValue = 0.0;
-        this.resultValue = 0.0;
-        this.operandValue = 0.0;
-        this.operator = null;
+        this.reset(true);
     }
 
     Calculator.prototype = {
         "pressNumber": function (buttonId) {
-            this.inputValue += buttonId;
-            this.calcPad.displayText = this.inputValue;
+            this.inputText += buttonId;
+            this.calcPad.displayText = this.inputText;
         },
         "pressDot": function (buttonId) {
-            if (this.inputValue.indexOf('.') < 0) {
-                this.inputValue += '.';
-                this.calcPad.displayText = this.inputValue;
+            if (this.inputText.indexOf('.') < 0) {
+                this.inputText += '.';
+                this.calcPad.displayText = this.inputText;
             }
         },
         "pressOperator": function (buttonId) {
+            if (this.inputText.length > 0) {
+                this.operandValue = parseFloat(this.inputText);
+            }
             this.applyOperator();
             this.operator = buttonId;
-            this.inputValue = '';
         },
         "pressEnter": function (buttonId) {
+            if (this.inputText.length > 0) {
+                this.operandValue = parseFloat(this.inputText);
+            }
             this.applyOperator();
         },
         "applyOperator": function () {
-            var x = parseFloat(this.resultValue);
-            var y = parseFloat(this.inputValue);
+            var x = this.resultValue;
+            var y = this.operandValue;
             switch (this.operator) {
                 case '+': x += y; break;
                 case '-': x -= y; break;
@@ -103,15 +125,25 @@ var calcemu = (function () {
                 case '/': x /= y; break;
                 default: x = y; break;
             }
-            this.resultValue = x.toString();
+            this.resultValue = x;
             this.calcPad.displayText = x.toString();
-            this.inputValue = '';
+            this.inputText = '';
         },
-        "dumpState": function () {
-            console.log('inputValue: ' + this.inputValue);
-            console.log('resultValue: ' + this.resultValue);
-            console.log('operator: ' + this.operator);
-        }
+    };
+    
+    Calculator.prototype.dumpState = function () {
+        console.log('inputText: ' + this.inputText);
+        console.log('resultValue: ' + this.resultValue);
+        console.log('operator: ' + this.operator);
+    };
+
+    Calculator.prototype.reset = function () {
+        this.inputText = '';
+        this.memoryValue = 0.0;
+        this.resultValue = 0.0;
+        this.operandValue = 0.0;
+        this.operator = null;
+        this.calcPad.displayText = '0';
     };
 
     return {

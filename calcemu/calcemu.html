@@ -1,8 +1,17 @@
-<link rel="stylesheet" href="calcemu.css">
-<div id='a'></div>
-<script src="calcemu.js"></script>
-<script>
-    window.addEventListener('load', function () {
-        window.calc = new calcemu.Calculator(document.getElementById('a'));
-    });
-</script>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Calculator Emulator</title>
+        <link rel="stylesheet" href="calcemu.css">
+    </head>
+    <body>
+        <div id='a'></div>
+        <script src="calcemu.js"></script>
+        <script>
+            window.addEventListener('load', function () {
+                window.calc = new calcemu.Calculator(document.getElementById('a'));
+            });
+        </script>
+    </body>
+</html>
