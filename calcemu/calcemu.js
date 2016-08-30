@@ -79,16 +79,19 @@ var calcemu = (function () {
                 that.pressOperator(buttonId);
             } else if (buttonId == '=') {
                 that.pressEnter(buttonId);
+            } else if (buttonId == 'mc') {
+                that.memoryClear();
             } else if (buttonId == 'ac') {
-                that.reset(true);
+                that.clear(true);
             } else if (buttonId == 'c') {
-                that.reset(false);
+                that.clear(false);
             } else {
                 //window.alert(buttonId);
             }
             that.dumpState();
         };
-        this.reset(true);
+        this.memoryClear();
+        this.clear(true);
     }
 
     Calculator.prototype = {
@@ -105,8 +108,10 @@ var calcemu = (function () {
         "pressOperator": function (buttonId) {
             if (this.inputText.length > 0) {
                 this.operandValue = parseFloat(this.inputText);
+                this.applyOperator();
+            } else {
+                this.operandValue = this.resultValue;
             }
-            this.applyOperator();
             this.operator = buttonId;
         },
         "pressEnter": function (buttonId) {
@@ -115,20 +120,21 @@ var calcemu = (function () {
             }
             this.applyOperator();
         },
-        "applyOperator": function () {
-            var x = this.resultValue;
-            var y = this.operandValue;
-            switch (this.operator) {
-                case '+': x += y; break;
-                case '-': x -= y; break;
-                case '*': x *= y; break;
-                case '/': x /= y; break;
-                default: x = y; break;
-            }
-            this.resultValue = x;
-            this.calcPad.displayText = x.toString();
-            this.inputText = '';
-        },
+    };
+
+    Calculator.prototype.applyOperator = function () {
+        var x = this.resultValue;
+        var y = this.operandValue;
+        switch (this.operator) {
+            case '+': x += y; break;
+            case '-': x -= y; break;
+            case '*': x *= y; break;
+            case '/': x /= y; break;
+            default: x = y; break;
+        }
+        this.resultValue = x;
+        this.calcPad.displayText = x.toString();
+        this.inputText = '';
     };
     
     Calculator.prototype.dumpState = function () {
@@ -137,9 +143,12 @@ var calcemu = (function () {
         console.log('operator: ' + this.operator);
     };
 
-    Calculator.prototype.reset = function () {
-        this.inputText = '';
+    Calculator.prototype.memoryClear = function () {
         this.memoryValue = 0.0;
+    };
+
+    Calculator.prototype.clear = function (all) {
+        this.inputText = '';
         this.resultValue = 0.0;
         this.operandValue = 0.0;
         this.operator = null;
