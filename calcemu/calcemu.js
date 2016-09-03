@@ -132,9 +132,11 @@ var calcemu = (function () {
             } else if ('+-*/'.indexOf(buttonId) >= 0) {
                 that.pressOperator(buttonId);
             } else if (buttonId == '=') {
-                that.pressEnter(buttonId);
+                that.pressEnter();
             } else if (buttonId == '%') {
                 that.pressPercent();
+            } else if (buttonId == 'sqrt') {
+                that.pressSqrt();
             } else if (buttonId == 'mc') {
                 that.memoryClear();
             } else if (buttonId == 'mr') {
@@ -151,7 +153,7 @@ var calcemu = (function () {
                 console.log('key: ' + buttonId);
                 return;
             }
-            that.dumpState();
+            console.log('state: ' + that);
         };
         this.memoryClear();
         this.clear(true);
@@ -159,6 +161,13 @@ var calcemu = (function () {
 
     Calculator.prototype = {
         pressNumber: function (buttonId) {
+            if (this.inputText.indexOf('.') >= 0) {
+                if (this.inputText.length >= this.columns + 1)
+                    return;
+            } else {
+                if (this.inputText.length >= this.columns)
+                    return;
+            }
             this.inputText += buttonId;
             this.calcPad.displayText = this.inputText;
         },
@@ -181,11 +190,16 @@ var calcemu = (function () {
                 this.calcPad.operator = buttonId;
                 this.isInputForResult = false;
             } else {
-                // The case like 123++. Set the operand so that
-                // 456= results 456+123.
-                this.operandValue = this.resultValue;
                 this.operator = buttonId;
-                this.isInputForResult = true;
+                if (this.isInputForResult) {
+                    this.isInputForResult = false;
+                } else {
+                    // The case like 123++. Set the operand so that
+                    // 456= results 456+123.
+                    this.operandValue = this.resultValue;
+                    this.isInputForResult = true;
+                    this.operator = buttonId;
+                }
             }
         },
         pressEnter: function () {
@@ -201,10 +215,32 @@ var calcemu = (function () {
             this.calcPad.operator = null;
         },
         pressPercent: function () {
-            this.pressEnter();
-            var x = this.resultValue / 100;
-            x = normalizeNumber(x, this.columns);
-            this.calcPad.displayText = x;
+            if (this.inputText.length > 0) {
+                if (this.isInputForResult) {
+                    this.resultValue = parseFloat(this.inputText);
+                } else {
+                    this.operandValue = parseFloat(this.inputText);
+                }
+            }
+            this.applyPercent();
+            this.isInputForResult = true;
+            this.calcPad.operator = null;
+        },
+        pressSqrt: function () {
+            if (this.isInputForResult) {
+                this.resultValue = parseFloat(this.inputText);
+                var x = Math.sqrt(this.resultValue);
+                x = normalizeNumber(x, this.columns);            
+                this.resultValue = x;
+                this.calcPad.displayText = x;
+            } else {
+                this.operandValue = parseFloat(this.inputText);
+                var x = Math.sqrt(this.operandValue);
+                x = normalizeNumber(x, this.columns);            
+                this.operandValue = x;
+                this.calcPad.displayText = x;                
+            }
+            this.inputText = '';
         },
         focus: function () {
             this.calcPad.focus();
@@ -214,12 +250,14 @@ var calcemu = (function () {
             this.calcPad.memory = false;
         },
         clear: function (all) {
-            this.isInputForResult = true;
+            if (all) {
+                this.isInputForResult = true;
+                this.resultValue = 0.0;
+                this.operandValue = 0.0;
+                this.operator = null;
+                this.calcPad.operator = null;
+            }
             this.inputText = '';
-            this.resultValue = 0.0;
-            this.operandValue = 0.0;
-            this.operator = null;
-            this.calcPad.operator = null;
             this.calcPad.displayText = '0';
         },
         recallMemory: function () {
@@ -261,25 +299,43 @@ var calcemu = (function () {
                 this.calcPad.displayText = 'E';
             }
         },        
-        dumpState: function () {
-            console.log(this.toString());
+        applyPercent: function () {
+            this.inputText = '';
+
+            var x = this.resultValue;
+            var y = this.operandValue;
+            switch (this.operator) {
+                case '+': x *= (100.0 + y) / 100.0; break;
+                case '-': x -= (100.0 - y) / 100.0; break;
+                case '*': x *= y / 100.0; break;
+                case '/': x /= y / 100.0; break;
+            }
+            x = normalizeNumber(x, this.columns);
+            if (x !== null) {
+                console.log('result=' + x);
+                // 24800*3%+= results 25544.
+                this.operandValue = x;
+                this.calcPad.displayText = x.toString();
+            } else {
+                this.calcPad.displayText = 'E';
+            }
         },
         toString: function () {
-            var str = 'Calculator(';
+            var str = '[object Calculator(';
             str += 'inputText=' + this.inputText;
             str += ', operandValue=' + this.operandValue;
             str += ', resultValue=' + this.resultValue;
             str += ', memoryValue=' + this.memoryValue;
             str += ', operator=' + this.operator;
             str += ', isInputForResult=' + this.isInputForResult;
-            str += ')';
+            str += ')]';
             return str;
         }
     };
 
     function normalizeNumber(x, columns) {
         x = x.toString();
-        if (!/^[0-9.]+/.test(x)) return null;
+        if (!/^-?[0-9.]+/.test(x)) return null;
         var pos = x.indexOf('.');
         if (pos > columns) {
             return null;
