@@ -3,31 +3,65 @@ var calcemu = (function () {
 
     var labelLists = '% MC MR M- M+ \u221a 7 8 9 \u00f7 C 4 5 6 \u00d7 AC 1 2 3 - _ 0 . = +'.split(' ');
     var idLists = '% mc mr m- m+ sqrt 7 8 9 / c 4 5 6 * ac 1 2 3 - _ 0 . = +'.split(' ');
-    var keyLists = '% f m s a r 7 8 9 / c 4 5 6 * c 1 2 3 - _ 0 . = +'.split(' ');
+    var keyLists = '% _ ^ < > ! 7 8 9 / c 4 5 6 * c 1 2 3 - _ 0 . = +'.split(' ');
+    var keyAliasLists = '% f m s a r 7 8 9 / c 4 5 6 * Escape 1 2 3 - # 0 . Enter +'.split(' ');
     var classLists = 'o m m m m o n n n o c n n n o c n n n o _ n n o o'.split(' ').map(function (x) {
-        switch (x) {
-            case 'o': return 'operator';
-            case 'n': return 'number';
-            case 'c': return 'controller';
-            case 'm': return 'memory';
-        }
+        return {
+            'o': 'operator',
+            'n': 'number',
+            'c': 'controller',
+            'm': 'memory',
+            '_': 'none'
+        }[x];
     });
+    var operatorLabels = { '+': '+', '-': '-', '*': '\u00d7', '/': '\u00f7'};
 
-    function CalcPad(element) {
+    function CalcPad(element, columns) {
         var that = this;
         this.element = element;
+        this.columns = columns;
         var tableElement = document.createElement('table');
+        this.tableElement = tableElement;
+        tableElement.tabIndex = 0;
         tableElement.className = 'calcemu-calcpad';
         tableElement.addEventListener('keydown', function (event) {
-            that.onButtonClick(event.key);
+            for (var i = 0; i < keyAliasLists.length; i++) {
+                if (keyAliasLists[i] == event.key) {
+                    that.onButtonClick(idLists[i]);
+                    return;
+                }
+            }
+            for (var i = 0; i < keyLists.length; i++) {
+                if (keyLists[i] == event.key) {
+                    that.onButtonClick(idLists[i]);
+                    return;
+                }
+            }
         });
         this.element.appendChild(tableElement);
 
         this._displayText = null;
-        this.displayElement = document.createElement('td');
-        this.displayElement.className = 'calcemu-display'
-        this.displayElement.colSpan = 5;
-        tableElement.appendChild(this.displayElement);
+        this._memory = null;
+        this._operator = null;
+
+        var displayContainerElement = document.createElement('tr');
+        tableElement.appendChild(displayContainerElement);
+
+        var displayElement = document.createElement('td');
+        displayElement.className = 'calcemu-display'
+        displayElement.colSpan = 5;
+        displayContainerElement.appendChild(displayElement);
+
+        this.memoryElement = document.createElement('span');
+        this.memoryElement.innerHTML = 'M';
+        displayElement.appendChild(this.memoryElement);
+
+        this.operatorElement = document.createElement('span');
+        displayElement.appendChild(this.operatorElement);
+
+        this.numberElement = document.createElement('input');
+        this.numberElement.size = 1;
+        displayElement.appendChild(this.numberElement);
 
         var titleContainerElement = document.createElement('tr');
         tableElement.appendChild(titleContainerElement);
@@ -63,13 +97,33 @@ var calcemu = (function () {
     CalcPad.prototype = {
         set displayText(value) {
             this._displayText = value;
-            this.displayElement.innerHTML = value;
+            this.numberElement.value = value;
+        },
+        set memory(value) {
+            this._memory = value;
+            if (value) {
+                this.memoryElement.style.visibility = 'visible';
+            } else {
+                this.memoryElement.style.visibility = 'hidden';
+            }
+        },
+        set operator(value) {
+            this._operator = value;
+            if (value) {
+                this.operatorElement.innerHTML = operatorLabels[value];
+            } else {
+                this.operatorElement.innerHTML = '';
+            }
+        },
+        focus: function () {
+            this.tableElement.focus();
         }
     }
 
-    function Calculator(element) {
+    function Calculator(element, columns) {
         var that = this;
-        this.calcPad = new CalcPad(element);
+        this.columns = columns || 10;
+        this.calcPad = new CalcPad(element, this.columns);
         this.calcPad.onButtonClick = function (buttonId) {
             if ('0123456789'.indexOf(buttonId) >= 0) {
                 that.pressNumber(buttonId);
@@ -79,14 +133,23 @@ var calcemu = (function () {
                 that.pressOperator(buttonId);
             } else if (buttonId == '=') {
                 that.pressEnter(buttonId);
+            } else if (buttonId == '%') {
+                that.pressPercent();
             } else if (buttonId == 'mc') {
                 that.memoryClear();
+            } else if (buttonId == 'mr') {
+                that.recallMemory();
+            } else if (buttonId == 'm+') {
+                that.applyMemoryOperator('+');
+            } else if (buttonId == 'm-') {
+                that.applyMemoryOperator('-');
             } else if (buttonId == 'ac') {
                 that.clear(true);
             } else if (buttonId == 'c') {
                 that.clear(false);
             } else {
-                //window.alert(buttonId);
+                console.log('key: ' + buttonId);
+                return;
             }
             that.dumpState();
         };
@@ -95,65 +158,138 @@ var calcemu = (function () {
     }
 
     Calculator.prototype = {
-        "pressNumber": function (buttonId) {
+        pressNumber: function (buttonId) {
             this.inputText += buttonId;
             this.calcPad.displayText = this.inputText;
         },
-        "pressDot": function (buttonId) {
+        pressDot: function (buttonId) {
             if (this.inputText.indexOf('.') < 0) {
                 this.inputText += '.';
                 this.calcPad.displayText = this.inputText;
             }
         },
-        "pressOperator": function (buttonId) {
+        pressOperator: function (buttonId) {
             if (this.inputText.length > 0) {
-                this.operandValue = parseFloat(this.inputText);
+                if (this.isInputForResult) {
+                    this.resultValue = parseFloat(this.inputText);
+                    this.operator = null;
+                } else {
+                    this.operandValue = parseFloat(this.inputText);
+                }
                 this.applyOperator();
+                this.operator = buttonId;
+                this.calcPad.operator = buttonId;
+                this.isInputForResult = false;
             } else {
+                // The case like 123++. Set the operand so that
+                // 456= results 456+123.
                 this.operandValue = this.resultValue;
+                this.operator = buttonId;
+                this.isInputForResult = true;
             }
-            this.operator = buttonId;
         },
-        "pressEnter": function (buttonId) {
+        pressEnter: function () {
             if (this.inputText.length > 0) {
-                this.operandValue = parseFloat(this.inputText);
+                if (this.isInputForResult) {
+                    this.resultValue = parseFloat(this.inputText);
+                } else {
+                    this.operandValue = parseFloat(this.inputText);
+                }
             }
             this.applyOperator();
+            this.isInputForResult = true;
+            this.calcPad.operator = null;
         },
-    };
+        pressPercent: function () {
+            this.pressEnter();
+            var x = this.resultValue / 100;
+            x = normalizeNumber(x, this.columns);
+            this.calcPad.displayText = x;
+        },
+        focus: function () {
+            this.calcPad.focus();
+        },
+        memoryClear: function () {
+            this.memoryValue = null;
+            this.calcPad.memory = false;
+        },
+        clear: function (all) {
+            this.isInputForResult = true;
+            this.inputText = '';
+            this.resultValue = 0.0;
+            this.operandValue = 0.0;
+            this.operator = null;
+            this.calcPad.operator = null;
+            this.calcPad.displayText = '0';
+        },
+        recallMemory: function () {
+            if (this.memoryValue !== null) {
+                var value = this.memoryValue.toString();
+                this.inputText = value;
+                this.calcPad.displayText = value;
+            }
+        },
+        applyMemoryOperator: function (operator) {
+            this.pressEnter();
+            if (this.memoryValue === null) {
+                this.memoryValue = 0.0;
+            }
+            if (operator == '+') {
+                this.memoryValue += this.resultValue;
+            } else if (operator == '-') {
+                this.memoryValue -= this.resultValue;
+            }
+            this.calcPad.memory = true;
+        },
+        applyOperator: function () {
+            this.inputText = '';
 
-    Calculator.prototype.applyOperator = function () {
-        var x = this.resultValue;
-        var y = this.operandValue;
-        switch (this.operator) {
-            case '+': x += y; break;
-            case '-': x -= y; break;
-            case '*': x *= y; break;
-            case '/': x /= y; break;
-            default: x = y; break;
+            var x = this.resultValue;
+            var y = this.operandValue;
+            switch (this.operator) {
+                case '+': x += y; break;
+                case '-': x -= y; break;
+                case '*': x *= y; break;
+                case '/': x /= y; break;
+            }
+            x = normalizeNumber(x, this.columns);
+            if (x !== null) {
+                console.log('result=' + x);
+                this.resultValue = x;
+                this.calcPad.displayText = x.toString();
+            } else {
+                this.calcPad.displayText = 'E';
+            }
+        },        
+        dumpState: function () {
+            console.log(this.toString());
+        },
+        toString: function () {
+            var str = 'Calculator(';
+            str += 'inputText=' + this.inputText;
+            str += ', operandValue=' + this.operandValue;
+            str += ', resultValue=' + this.resultValue;
+            str += ', memoryValue=' + this.memoryValue;
+            str += ', operator=' + this.operator;
+            str += ', isInputForResult=' + this.isInputForResult;
+            str += ')';
+            return str;
         }
-        this.resultValue = x;
-        this.calcPad.displayText = x.toString();
-        this.inputText = '';
-    };
-    
-    Calculator.prototype.dumpState = function () {
-        console.log('inputText: ' + this.inputText);
-        console.log('resultValue: ' + this.resultValue);
-        console.log('operator: ' + this.operator);
     };
 
-    Calculator.prototype.memoryClear = function () {
-        this.memoryValue = 0.0;
-    };
-
-    Calculator.prototype.clear = function (all) {
-        this.inputText = '';
-        this.resultValue = 0.0;
-        this.operandValue = 0.0;
-        this.operator = null;
-        this.calcPad.displayText = '0';
-    };
+    function normalizeNumber(x, columns) {
+        x = x.toString();
+        if (!/^[0-9.]+/.test(x)) return null;
+        var pos = x.indexOf('.');
+        if (pos > columns) {
+            return null;
+        } else if (pos >= 0) {
+            x = x.substring(0, columns + 1);
+        } else {
+            if (x.length > columns) return null;
+        }
+        return parseFloat(x);
+    }
 
     return {
         'Calculator': Calculator

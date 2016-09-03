@@ -2,6 +2,7 @@
     border: 2px solid gray;
     background-color: lightgray;
     padding: 8px;
+    outline: none;
 }
 
 .calcemu-calcpad .calcemu-display {
@@ -9,8 +10,28 @@
     padding: 4px;
     color: black;
     background-color: #ccddcc;
-    font: bold 28pt sans-serif;
+    font: bold 26pt sans-serif;
     text-align: right;
+}
+
+.calcemu-calcpad .calcemu-display input {
+    margin: 0 0 0 -30px;
+    border: none;
+    padding: 0;
+    width: 100%;
+    background: none;
+    font: bold 24pt sans-serif;
+    text-align: right;
+}
+
+.calcemu-calcpad .calcemu-display span {
+    border: none;
+    margin: 0;
+    padding: 0;
+    background: none;
+    font: bold 8pt sans-serif;
+    float: left;
+    clear: left;
 }
 
 .calcemu-calcpad .calcemu-logo {
@@ -28,8 +49,14 @@
     margin: 2px;
     color: white;
     background-color: #444444;
+    /*
     border: 2px outset gray;
+    */
     font: bold 10pt sans-serif;
+}
+
+.calcemu-calcpad button.none {
+    display: none;
 }
 
 .calcemu-calcpad button.operator {

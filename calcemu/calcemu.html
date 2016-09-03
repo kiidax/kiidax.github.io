@@ -6,11 +6,17 @@
         <link rel="stylesheet" href="calcemu.css">
     </head>
     <body>
-        <div id='a'></div>
+        <div id='calc'></div>
         <script src="calcemu.js"></script>
         <script>
+            var calc;
             window.addEventListener('load', function () {
-                window.calc = new calcemu.Calculator(document.getElementById('a'));
+                var el = document.getElementById('calc');
+                calc = new calcemu.Calculator(el);
+                calc.focus();
+                window.addEventListener('click', function () {
+                    calc.focus();
+                });
             });
         </script>
     </body>
